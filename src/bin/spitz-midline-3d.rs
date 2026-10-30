@@ -1,15 +1,12 @@
-#![feature(portable_simd)]
-use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_fast};
-use std::{simd::Simd, thread::{self, JoinHandle}};
+use reconstructor::{T, dataset::{CSVConfigBuilder, get_minimum, parse}, midline_fast};
+use std::thread::{self, JoinHandle};
 use nanorand::{Rng, WyRand};
-use query_engine::generator::{GeneratorTrait, RandomGenerator};
 
 #[macro_export]
 macro_rules! query {
     ( $x:expr ) => {
         {
-            let mut value_preload: u64 = $x.generate();
+            let value_preload: u64 = $x.generate();
             let mut value: u64 = $x.generate();
             let mut value_index = 0;
             let bounds = [25456, 25455, 24052, 24051, 12, 11];

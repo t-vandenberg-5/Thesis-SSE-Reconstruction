@@ -1,7 +1,7 @@
 #![feature(portable_simd)]
 use bumpalo::Bump;
 use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, Tracker2D, Tracker3D, U, midline::{self, Tracker}, midline_optimized::{self, Slate, hyperoctants}, traverse::{Full, OnlyMiddle, Traversable, Walk}};
+use reconstructor::{Solver, T, Tracker2D, Tracker3D, U, midline::{self, Tracker}, traverse::{OnlyMiddle, Traversable, Walk}};
 use std::{collections::HashSet, simd::Simd, thread::{self, JoinHandle}};
 use emptyblock::simd::simd_block_width;
 use nanorand::WyRand;
@@ -75,34 +75,19 @@ fn reconstruct_query_from_inserted(dom: T, query: [(T, T); DIMENSIONS], insert: 
     }
 }
 
-fn is_reconstructable<B: BufferTrait<T, DIMENSIONS, Generated = [(T, T); DIMENSIONS]>>(dom: T, qe: &mut B, database: &DB<T, U, DIMENSIONS, CAPACITY>) -> bool {
-    qe.restart();
-    let mut solver: TrackerD = TrackerD::new::<CAPACITY>([dom; DIMENSIONS]);
-    while let Some(pq) = qe.existing_next() {
-        if solver.add_query(&pq, database.search(pq), &database) {
-            qe.restart();
-            solver.reset_current_area([dom; DIMENSIONS]);
-        }
-        if <TrackerD as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver) {
-            return true
-        }
-    }
-    <TrackerD as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver)
-}
-
 fn n(dom: T, qe: &mut Buffer<T, DIMENSIONS, UniformRandomGenerator<WyRand, 8>>) -> HashSet<[T; DIMENSIONS]> {
     let mut insert: HashSet<[T; DIMENSIONS]> = HashSet::new();
     let mut traverse = OnlyMiddle::<DIMENSIONS>::new(dom);
     let mut traverse_backup = Walk::<DIMENSIONS>::new(dom);
 
     qe.restart();
-    /// Loop over all queries
+    // Loop over all queries
     'q: while let Some(query) = qe.existing_next() {
         if reconstruct_query_from_inserted(dom, query, &mut insert) { continue 'q }
 
         loop {
             //insert new
-            let mut inserted;
+            let inserted;
             if let Some(t) = traverse.next() {
                 inserted = t;
                 insert.insert(t);
@@ -274,14 +259,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
         while dom <= MAX {
             let dom_arr = [dom; DIMENSIONS];
-            let mut midpoint_arr = [dom / 2; DIMENSIONS];
+            let midpoint_arr = [dom / 2; DIMENSIONS];
             let zipped: [(usize, usize, usize); ATTEMPTS_PER_THREAD] = core::array::from_fn(|_| {
                 let database = DB::<T, U, DIMENSIONS, CAPACITY>::generate(&dom_arr);
                 let bump = Bump::new();
                 let mut qe = Buffer::<T, DIMENSIONS, UniformRandomGenerator<WyRand, 8>>::new(&bump);
-                let mut insert: HashSet<[T; DIMENSIONS]> = HashSet::new();
-                let mut traverse = OnlyMiddle::<DIMENSIONS>::new(dom);
-                let mut traverse_new_index = [0; DIMENSIONS];
+                let insert: HashSet<[T; DIMENSIONS]>;
                 //c.bench_function("simd_gen_query", |b| b.iter(|| database.generate_query()));
                 let mut queries = 0;
                 let mut solver: midline::Tracker::<DIMENSIONS, QRMW> = midline::Tracker::new::<CAPACITY>(dom_arr);
@@ -299,7 +282,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
                     let mut new_solver = midline_fast::Solver::<CAPACITY, DIMENSIONS>::new::<DIMENSIONS_MINUS_ONE>(&data);
 
                     while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver) {
-                        let mut query = qe.next(&dom_arr);
+                        let query = qe.next(&dom_arr);
 
                         queries += 1;
                         solver.add_query(&query, dummy_qr, &database);
@@ -317,7 +300,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
                                         }
 
                                         qe.restart();
-                                        for q in 0..queries {
+                                        for _ in 0..queries {
                                             println!("{:?}", qe.existing_next().unwrap());
                                         }
                                         assert_eq!(qe.existing_next(), None);
@@ -337,7 +320,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
                     assert!(new_solver.is_solved());
                 } else {
                     while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver) {
-                        let mut query = qe.next(&dom_arr);
+                        let query = qe.next(&dom_arr);
 
                         queries += 1;
                         solver.add_query(&query, dummy_qr, &database);

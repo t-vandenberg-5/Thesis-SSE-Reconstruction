@@ -1,16 +1,16 @@
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
 
 // The general idea behind this approach is that instead of running queries and 
 // analyzing the results, we should simply parse the database into another
 // datastructure that sets requirements. As these requirements are met, we can
 // remove them. Once none remain, the database is reconstructed.
-use crate::{T, midline_optimized::{pebble::Pebble, raw_pebble::RawPebble}};
+use crate::{T, midline_optimized::pebble::Pebble};
 
 pub const fn hyperoctants(m: usize) -> usize { 2usize.pow(m as u32) }
 
 /// Contains a set of constraints
 mod raw_pebble {
-    use std::cmp::{self, Ordering};
+    use std::cmp::Ordering;
 
     use crate::T;
 
@@ -109,7 +109,7 @@ mod raw_pebble {
                     (Ordering::Equal, Ordering::Equal) |
                     (Ordering::Greater, Ordering::Greater)
                         => {},
-                    (a, Ordering::Equal)
+                    (_, Ordering::Equal)
                         => {},
                     (Ordering::Equal, a) 
                         => { order = a },

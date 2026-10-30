@@ -1,15 +1,12 @@
-#![feature(portable_simd)]
-use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_fast};
-use std::{simd::Simd, thread::{self, JoinHandle}};
+use reconstructor::{T, dataset::{CSVConfigBuilder, get_minimum, parse}, midline_fast};
+use std::thread::{self, JoinHandle};
 use nanorand::{Rng, WyRand};
-use query_engine::generator::{GeneratorTrait, RandomGenerator};
 
 #[macro_export]
 macro_rules! query {
     ( $x:expr ) => {
         {
-            let mut value_preload: u64 = $x.generate();
+            let value_preload: u64 = $x.generate();
             let mut value: u64 = $x.generate();
             let mut value_index = 0;
             let bounds = [25456, 25455, 24052, 24051, 12, 11, 3, 2, 9, 8];
@@ -126,8 +123,6 @@ fn main() {
     const DIMENSIONS_MINUS_ONE: usize = DIMENSIONS - 1;
     const THREADS: usize = 25;
     const TESTS_PER_THREAD: usize = 4;
-    const DOMAINS: [T; DIMENSIONS] = [25456, 24052, 12, 3, 9];
-    let midpoints: [T; DIMENSIONS] = core::array::from_fn(|x| DOMAINS[x] / 2);
     let handle: [JoinHandle<[usize; TESTS_PER_THREAD]>; THREADS] = core::array::from_fn(|_threadnum| {
         let v1 = c1.clone();
         let v2 = c2.clone();

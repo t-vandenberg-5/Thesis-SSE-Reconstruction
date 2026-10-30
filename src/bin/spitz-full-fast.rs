@@ -1,9 +1,6 @@
-#![feature(portable_simd)]
-use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_fast};
-use std::{simd::Simd, thread::{self, JoinHandle}};
+use reconstructor::{T, dataset::{CSVConfigBuilder, get_minimum, parse}, midline_fast};
+use std::thread::{self, JoinHandle};
 use nanorand::{Rng, WyRand};
-use query_engine::generator::{GeneratorTrait, RandomGenerator};
 
 #[macro_export]
 macro_rules! query {
@@ -79,96 +76,23 @@ fn main() {
     const DIMENSIONS_MINUS_ONE: usize = DIMENSIONS - 1;
     const THREADS: usize = 25;
     const TESTS_PER_THREAD: usize = 4;
-    const DOMAINS: [T; DIMENSIONS] = [25456, 24052];
-    let midpoints: [T; DIMENSIONS] = core::array::from_fn(|x| DOMAINS[x] / 2);
     let handle: [JoinHandle<[usize; TESTS_PER_THREAD]>; THREADS] = core::array::from_fn(|_threadnum| {
         let v1 = c1.clone();
         let v2 = c2.clone();
-        let v3 = c3.clone();
         thread::spawn(move || {
             let zipped: [usize; TESTS_PER_THREAD] = core::array::from_fn(|_| {
                 let mut sqe = WyRand::new();
                 let mut queries = 0;
                 let mut solver = midline_fast::Solver::<29252, DIMENSIONS>::new::<DIMENSIONS_MINUS_ONE>(&[v1.clone(), v2.clone()]);
-                // println!("Loaded");
-                // println!("{}, {}", queries, solver.remaining());
                 while !solver.is_solved() {
                     queries += 1;
                     let query = query!(sqe);
                     solver.process::<DIMENSIONS_MINUS_ONE>(query, 0);
                     solver.process::<DIMENSIONS_MINUS_ONE>(query, 1);
-                    // if queries % 1000_000 == 0 {
-                    //     println!("{}, {}", queries, solver.remaining());
-                    // }
                 }
                 println!("{queries}");
 
                 queries
-                //
-                // let mut bound_start = 0;
-                // while bound_start + 256 <= v1.len() {
-                //     let database = DB::<T, U, DIMENSIONS, CAPACITY>::read(&[
-                //         v1[bound_start..bound_start + CAPACITY].to_vec(),
-                //         v2[bound_start..bound_start + CAPACITY].to_vec(),
-                //         //v3[bound_start..bound_start + CAPACITY].to_vec()
-                //     ]);
-                //     //println!("[{:?}] Thread {} read database {}..{}", chrono::Utc::now(), _threadnum, bound_start, bound_start + CAPACITY);
-                //     let mut qe = sqe.clone();
-                //     let mut solver: midline::Tracker<DIMENSIONS, QRMW> = midline::Tracker::new::<CAPACITY>(DOMAINS);
-                //     let mut queries = 0;
-                //     while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver) {
-                //         queries += 1;
-                //         let query = query!(qe);
-                //         solver.add_query(&query, dummy_simd, &database);
-                //         if queries % 100_000_000 == 0 {
-                //             // if solver.remaining() < 5 {
-                //             //     println!("[{:?}] Thread {} finished {} queries, {} records remaining: {:?}", chrono::Utc::now(), _threadnum, queries, solver.remaining(), solver.remaining_pos());
-                //             //     for d in solver.remaining_pos() {
-                //             //         for r in d {
-                //             //             println!("Thread {} {} queries record pos: {}, {}", _threadnum, queries, v1[bound_start + r], v2[bound_start + r]);
-                //             //         }
-                //             //     }
-                //             // } else {
-                //             //     println!("[{:?}] Thread {} finished {} queries, {} records remaining", chrono::Utc::now(), _threadnum, queries, solver.remaining());
-                //             // }
-                //         }
-                //     }
-                //
-                //     for i in 0..CAPACITY {
-                //         assert_eq!(<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::get_solved(&solver, i as U), Some(database.cheat_pos_traverse(i as U)));
-                //     }
-                //
-                //     if queries > max_queries {
-                //         max_queries = queries;
-                //     }
-                //     bound_start += 256;
-                // }
-                //
-                // let database = DB::<T, U, DIMENSIONS, 68>::read(&[
-                //     v1[bound_start..bound_start + 68].to_vec(),
-                //     v2[bound_start..bound_start + 68].to_vec(),
-                //     //v3[bound_start..bound_start + 68].to_vec()
-                // ]);
-                // //println!("Read Database");
-                // let mut qe = sqe.clone();
-                // let mut solver: midline::Tracker<DIMENSIONS, QRMW> = midline::Tracker::new::<68>(DOMAINS);
-                // let mut queries = 0;
-                // while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, 68, QRMW>>::is_solved(&solver) {
-                //     queries += 1;
-                //     let query = query!(qe);
-                //     solver.add_query(&query, database.search(query), &database);
-                // }
-                //
-                // for i in 0..68 {
-                //     assert_eq!(<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, 68, QRMW>>::get_solved(&solver, i as U), Some(database.cheat_pos_traverse(i as U)));
-                // }
-                //
-                // if queries > max_queries {
-                //     max_queries = queries;
-                // }
-                //
-                // println!("max_queries: {max_queries}");
-                // max_queries
             });
             zipped
     })});

@@ -4,14 +4,13 @@ use database_engine::{DB, qrsw};
 use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_optimized::{self, Slate, hyperoctants}};
 use std::{simd::Simd, sync::mpmc::{self, Receiver, Sender}, thread::{self, JoinHandle}};
 use nanorand::{WyRand, Rng};
-use query_engine::generator::{GeneratorTrait, RandomGenerator};
 
 #[macro_export]
 macro_rules! query {
     ( $x:expr ) => {
         {
-            let mut d0: [u16; 2] = [0, 0];
-            let mut d1: [u16; 2] = [0, 0];
+            let mut d0: [u16; 2];
+            let mut d1: [u16; 2];
             loop {
                 let value: u64 = $x.generate();
                 d0 = [
@@ -121,20 +120,16 @@ fn spawn_worker_2d(tx: Sender<[(u16, u16); 2]>, rx: Receiver<[(u16, u16); 2]>, s
 fn load_database_2d_reconstructor(c: (Vec<T>, Vec<T>), bound_start: usize) -> DB<u16, u16, 2, 256> {
     const DIMENSIONS: usize = 2;
     const CAPACITY: usize = 256;
-    const DOMAINS: [T; DIMENSIONS] = [25457, 24053];
-    const QRMW: usize = qrsw(CAPACITY);
     DB::<T, U, DIMENSIONS, CAPACITY>::read(&[
         c.0[bound_start..bound_start + CAPACITY].to_vec(),
         c.1[bound_start..bound_start + CAPACITY].to_vec(),
     ])
 }
 
-fn load_database_2d_reconstructor_final(c: (Vec<T>, Vec<T>), bound_start: usize) -> DB<u16, u16, 2, 155> {
+fn load_database_2d_reconstructor_final(c: (Vec<T>, Vec<T>), _bound_start: usize) -> DB<u16, u16, 2, 155> {
     const DIMENSIONS: usize = 2;
     const CAPACITY: usize = 256;
-    const DOMAINS: [T; DIMENSIONS] = [25457, 24053];
     const TOTAL_SIZE: usize = 30363;
-    const QRMW: usize = qrsw(CAPACITY);
     let start = (TOTAL_SIZE / CAPACITY) * CAPACITY;
     DB::<T, U, DIMENSIONS, { TOTAL_SIZE % CAPACITY}>::read(&[
         c.0[start..TOTAL_SIZE].to_vec(),
@@ -147,7 +142,6 @@ fn reconstruct(c: (Vec<T>, Vec<T>), rx: Receiver<[(u16, u16); 2]>) -> JoinHandle
         const DIMENSIONS: usize = 2;
         const CAPACITY: usize = 256;
         const DOMAINS: [T; DIMENSIONS] = [25457, 24053];
-        const TOTAL_SIZE: usize = 30363;
         const QRMW: usize = qrsw(CAPACITY);
         let dummy_qr = Simd::from_array([0usize; QRMW]);
         let mut queries = Vec::new();
@@ -187,9 +181,9 @@ fn reconstruct(c: (Vec<T>, Vec<T>), rx: Receiver<[(u16, u16); 2]>) -> JoinHandle
 }
 
 fn manager<const WORKERS: usize>() -> u64 {
-    let mut channel = mpmc::channel();
+    let channel = mpmc::channel();
     let load = load_db_columns();
-    let mut db = load_database_2d(load.clone());
+    let db = load_database_2d(load.clone());
     let r = reconstruct(load, channel.1.clone());
     let workers: [_; WORKERS] = core::array::from_fn(|_| spawn_worker_2d(channel.0.clone(), channel.1.clone(), db.0.clone(), db.1.clone()));
     drop(channel);

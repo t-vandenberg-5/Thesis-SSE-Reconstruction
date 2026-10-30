@@ -1,9 +1,6 @@
-#![feature(portable_simd)]
-use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_fast};
-use std::{simd::Simd, thread::{self, JoinHandle}};
+use reconstructor::{T, dataset::{CSVConfigBuilder, get_minimum, parse}, midline_fast};
+use std::thread::{self, JoinHandle};
 use nanorand::{Rng, WyRand};
-use query_engine::generator::{GeneratorTrait, RandomGenerator};
 
 #[macro_export]
 macro_rules! query {
@@ -84,7 +81,6 @@ fn main() {
     let handle: [JoinHandle<[usize; TESTS_PER_THREAD]>; THREADS] = core::array::from_fn(|_threadnum| {
         let v1 = c1.clone();
         let v2 = c2.clone();
-        let v3 = c3.clone();
         thread::spawn(move || {
             let zipped: [usize; TESTS_PER_THREAD] = core::array::from_fn(|_| {
                 let mut sqe = WyRand::new();

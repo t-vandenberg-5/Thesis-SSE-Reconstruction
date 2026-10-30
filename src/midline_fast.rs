@@ -1,4 +1,4 @@
-use super::{U, T};
+use super::T;
 
 pub struct Solver<const CAPACITY: usize, const DIMENSIONS: usize>{
     dim: [SolverDimension<CAPACITY, DIMENSIONS>; DIMENSIONS],
@@ -94,7 +94,7 @@ impl<const CAPACITY: usize, const DIMENSIONS: usize> SolverDimension<CAPACITY, D
                     constrained &= query[d2 + (d2 >= d) as usize].0 <= self.rearranged[index][d2+1] && self.rearranged[index][d2+1] <= query[d2 + (d2 >= d) as usize].1
                 }
                 return_val = true;
-                self.solved[index] |= (constrained as u8);
+                self.solved[index] |= constrained as u8;
                 if self.solved[index] == 0b11 {
                     self.rearranged.remove(index);
                     self.solved.remove(index);

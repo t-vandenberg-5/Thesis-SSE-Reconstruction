@@ -1,16 +1,15 @@
-#![feature(portable_simd)]
 use bumpalo::Bump;
 use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, Tracker2D, Tracker3D, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_fast};
-use std::{simd::Simd, thread::{self, JoinHandle}};
+use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}, midline_fast};
+use std::thread::{self, JoinHandle};
 use nanorand::{Rng, WyRand};
-use query_engine::{buffer::{BufferTrait, LoadedBuffer}, generator::{GeneratorTrait, RandomGenerator}};
+use query_engine::buffer::{BufferTrait, LoadedBuffer};
 
 #[macro_export]
 macro_rules! query {
     ( $x:expr ) => {
         {
-            let mut value_preload: u64 = $x.generate();
+            let value_preload: u64 = $x.generate();
             let mut value: u64 = $x.generate();
             let mut value_index = 0;
             let bounds = [25456, 25455, 24052, 24051, 12, 11];
@@ -100,7 +99,6 @@ fn main() {
     const CONSTRAINED_CAPACITY: usize = 256;
     const CONSTRAINED_REM: usize = CAPACITY % CONSTRAINED_CAPACITY;
     const QRMW: usize = qrsw(CONSTRAINED_CAPACITY);
-    let midpoints: [T; DIMENSIONS] = core::array::from_fn(|x| DOMAINS[x] / 2);
     let handle: [JoinHandle<[usize; TESTS_PER_THREAD]>; THREADS] = core::array::from_fn(|_threadnum| {
         let v1 = c1.clone();
         let v2 = c2.clone();
