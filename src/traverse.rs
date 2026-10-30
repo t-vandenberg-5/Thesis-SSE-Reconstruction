@@ -38,9 +38,9 @@ impl<const DIMENSIONS: usize> OnlyMiddle<DIMENSIONS> {
 
 impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for OnlyMiddle<DIMENSIONS> {
     fn new(dom: T) -> Self {
-        Self { 
-            pool_start: 0, 
-            pool_end: 1, 
+        Self {
+            pool_start: 0,
+            pool_end: 1,
             index: core::array::from_fn(|_| 0),
             work_arr: OnlyMiddle::<DIMENSIONS>::work(dom),
             has_next: true,
@@ -49,9 +49,7 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for OnlyMiddle<DIMENSIONS>
 
     fn next(&mut self) -> Option<[T; DIMENSIONS]> {
         if self.has_next {
-            let pos = core::array::from_fn(|d| {
-                self.work_arr[self.index[d]]
-            });
+            let pos = core::array::from_fn(|d| self.work_arr[self.index[d]]);
             let mut i = 0;
             // println!("1: {:?}", self.index);
             self.index[i] += 1;
@@ -69,7 +67,7 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for OnlyMiddle<DIMENSIONS>
             if self.index[DIMENSIONS - 1] == self.pool_end {
                 if self.pool_end == self.work_arr.len() {
                     self.has_next = false;
-                    return Some(pos)
+                    return Some(pos);
                 }
                 let size = self.pool_end - self.pool_start;
                 self.pool_start = self.pool_end;
@@ -78,8 +76,8 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for OnlyMiddle<DIMENSIONS>
                 self.index = core::array::from_fn(|_| self.pool_start);
             }
             Some(pos)
-        } else { 
-            None 
+        } else {
+            None
         }
     }
 }
@@ -94,9 +92,9 @@ pub struct Full<const DIMENSIONS: usize> {
 
 impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for Full<DIMENSIONS> {
     fn new(dom: T) -> Self {
-        Self { 
-            pool_start: 0, 
-            pool_end: 1, 
+        Self {
+            pool_start: 0,
+            pool_end: 1,
             index: core::array::from_fn(|_| 0),
             work_arr: OnlyMiddle::<DIMENSIONS>::work(dom),
             has_next: true,
@@ -105,9 +103,7 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for Full<DIMENSIONS> {
 
     fn next(&mut self) -> Option<[T; DIMENSIONS]> {
         if self.has_next {
-            let pos = core::array::from_fn(|d| {
-                self.work_arr[self.index[d]]
-            });
+            let pos = core::array::from_fn(|d| self.work_arr[self.index[d]]);
             let mut i = 0;
             // println!("1: {:?}", self.index);
             self.index[i] += 1;
@@ -125,7 +121,7 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for Full<DIMENSIONS> {
             if self.index[DIMENSIONS - 1] == self.pool_end {
                 if self.pool_end == self.work_arr.len() {
                     self.has_next = false;
-                    return Some(pos)
+                    return Some(pos);
                 }
                 let size = self.pool_end - self.pool_start;
                 self.pool_start = self.pool_end;
@@ -134,8 +130,8 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for Full<DIMENSIONS> {
                 self.index = core::array::from_fn(|d| if d > 0 { 0 } else { self.pool_start });
             }
             Some(pos)
-        } else { 
-            None 
+        } else {
+            None
         }
     }
 }
@@ -147,7 +143,10 @@ pub struct Walk<const DIMENSIONS: usize> {
 
 impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for Walk<DIMENSIONS> {
     fn new(dom: T) -> Self {
-        Self { pos: [0; DIMENSIONS], dom }
+        Self {
+            pos: [0; DIMENSIONS],
+            dom,
+        }
     }
 
     fn next(&mut self) -> Option<[T; DIMENSIONS]> {
@@ -155,8 +154,8 @@ impl<const DIMENSIONS: usize> Traversable<DIMENSIONS> for Walk<DIMENSIONS> {
             let v = self.pos;
             self.pos[0] += 1;
             let mut d = 1;
-            while d < DIMENSIONS && self.pos[d-1] == self.dom {
-                self.pos[d-1] = 0;
+            while d < DIMENSIONS && self.pos[d - 1] == self.dom {
+                self.pos[d - 1] = 0;
                 self.pos[d] += 1;
                 d += 1;
             }

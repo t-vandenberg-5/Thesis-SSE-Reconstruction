@@ -1,12 +1,14 @@
-use criterion::{criterion_group, criterion_main, Criterion};
 use bumpalo::Bump;
+use criterion::{Criterion, criterion_group, criterion_main};
 use database_engine::DB;
 use nanorand::WyRand;
-use query_engine::{buffer::{Buffer, BufferTrait}, generator::RandomGenerator};
+use query_engine::{
+    buffer::{Buffer, BufferTrait},
+    generator::RandomGenerator,
+};
 
 const DIMENSIONS: usize = 2;
 type T = u16;
-
 
 fn criterion_benchmark(c: &mut Criterion) {
     const DOMAINS: [T; DIMENSIONS] = [100; DIMENSIONS];
@@ -16,9 +18,10 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut qe: Buffer<'_, RandomGenerator<WyRand, 8>> = query_engine::buffer::Buffer::new(&bump);
     c.bench_function("query_gen_fresh", |b| b.iter(|| qe.next(&DOMAINS)));
     qe.restart();
-    c.bench_function("simd_search", |b| b.iter(|| database.search(qe.next(&DOMAINS))));
+    c.bench_function("simd_search", |b| {
+        b.iter(|| database.search(qe.next(&DOMAINS)))
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
-

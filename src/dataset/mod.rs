@@ -1,4 +1,7 @@
-use std::{fs::File, io::{Read, Stdin, stdin}};
+use std::{
+    fs::File,
+    io::{Read, Stdin, stdin},
+};
 
 use csv::{Reader, ReaderBuilder, StringRecord};
 
@@ -8,8 +11,7 @@ pub struct CSVFilter {
     pub predicate: fn(&str) -> bool,
 }
 
-impl CSVFilter {
-}
+impl CSVFilter {}
 
 #[derive(Clone)]
 pub struct CSVConfig {
@@ -21,16 +23,16 @@ pub struct CSVConfig {
 impl CSVConfig {
     fn skip(&self) -> usize {
         if self.skip_first_line { 1 } else { 0 }
-    } 
+    }
 
     fn matches_filters(&self, record: &StringRecord) -> bool {
         for filter in &self.filters {
             if let Some(s) = record.get(filter.column) {
                 if !(filter.predicate)(s) {
-                    return false
+                    return false;
                 }
             } else {
-                return false
+                return false;
             }
         }
         true
@@ -45,16 +47,18 @@ impl From<CSVConfigBuilder> for CSVConfig {
 
 #[derive(Clone)]
 pub struct CSVConfigBuilder {
-    config: CSVConfig
+    config: CSVConfig,
 }
 
 impl Default for CSVConfigBuilder {
     fn default() -> Self {
-        Self { config: CSVConfig { 
-            filters: Vec::new(), 
-            skip_first_line: true, 
-            flexible: true 
-        } }
+        Self {
+            config: CSVConfig {
+                filters: Vec::new(),
+                skip_first_line: true,
+                flexible: true,
+            },
+        }
     }
 }
 
@@ -70,22 +74,32 @@ impl CSVConfigBuilder {
     }
 
     pub fn rb_file(&self, path: String) -> Result<Reader<File>, std::io::Error> {
-        Ok(ReaderBuilder::new().flexible(self.config.flexible).from_reader(File::open(path)?))
+        Ok(ReaderBuilder::new()
+            .flexible(self.config.flexible)
+            .from_reader(File::open(path)?))
     }
 
     pub fn rb(&self) -> Reader<Stdin> {
-        ReaderBuilder::new().flexible(self.config.flexible).from_reader(stdin())
+        ReaderBuilder::new()
+            .flexible(self.config.flexible)
+            .from_reader(stdin())
     }
 
-    pub fn read_iter<'a, T: Read>(&self, reader: &'a mut Reader<T>) -> impl Iterator<Item = StringRecord> {
-        reader.records().skip(self.config.skip()).filter_map(move |result| {
-            let r = result.ok()?;
-            if self.config.matches_filters(&r) { 
-                Some(r) 
-            } else { 
-                None 
-            }
-        })
+    pub fn read_iter<'a, T: Read>(
+        &self,
+        reader: &'a mut Reader<T>,
+    ) -> impl Iterator<Item = StringRecord> {
+        reader
+            .records()
+            .skip(self.config.skip())
+            .filter_map(move |result| {
+                let r = result.ok()?;
+                if self.config.matches_filters(&r) {
+                    Some(r)
+                } else {
+                    None
+                }
+            })
     }
 }
 
@@ -106,10 +120,13 @@ pub fn zeroable_bits(coll: &mut Vec<String>) -> u32 {
     //     assert_eq!(v.to_bits() & mantissa_mask, mantissa_and_sign);
     // }
     loop {
-        let mut c: Vec<f32> = coll.iter().map(|x| {
-            let f: f32 = x.parse().unwrap();
-            f32::from_bits(f.to_bits() & !((1 << (zeroed_bits + 1)) - 1))
-        }).collect();
+        let mut c: Vec<f32> = coll
+            .iter()
+            .map(|x| {
+                let f: f32 = x.parse().unwrap();
+                f32::from_bits(f.to_bits() & !((1 << (zeroed_bits + 1)) - 1))
+            })
+            .collect();
         c.sort_by(|a, b| a.total_cmp(b));
         println!("min {}, max {}", c.first().unwrap(), c.last().unwrap());
         let mut smallest_diff = 1000f32;
@@ -124,7 +141,7 @@ pub fn zeroable_bits(coll: &mut Vec<String>) -> u32 {
         if c.len() == coll.len() {
             zeroed_bits += 1
         } else {
-            break
+            break;
         }
     }
     zeroed_bits
@@ -132,33 +149,51 @@ pub fn zeroable_bits(coll: &mut Vec<String>) -> u32 {
 
 pub fn domain_size(coll: &mut Vec<String>) -> (u32, (u32, u32)) {
     let zeroable = zeroable_bits(coll);
-    let mut c: Vec<f32> = coll.iter().map(|x| {
-        let f: f32 = x.parse().unwrap();
-        f32::from_bits(f.to_bits() & !((1 << (zeroable)) - 1))
-    }).collect();
+    let mut c: Vec<f32> = coll
+        .iter()
+        .map(|x| {
+            let f: f32 = x.parse().unwrap();
+            f32::from_bits(f.to_bits() & !((1 << (zeroable)) - 1))
+        })
+        .collect();
     c.sort_by(|a, b| a.total_cmp(b));
     let full_diff = c.last().unwrap().to_bits() - c.first().unwrap().to_bits();
-    (full_diff >> zeroable, (c.first().unwrap().to_bits() >> zeroable, c.last().unwrap().to_bits() >> zeroable))
+    (
+        full_diff >> zeroable,
+        (
+            c.first().unwrap().to_bits() >> zeroable,
+            c.last().unwrap().to_bits() >> zeroable,
+        ),
+    )
 }
 
 pub fn parse(record: &String, minimum: u64) -> u16 {
-        let after_decimal = if record[1..2] == *"." { 2 } else { 3 };
-        let mut naive = (record[after_decimal..].parse::<u64>().unwrap() * 10u64.pow(10 - (record.len() as u32 - 1))) + 1;
-        naive += record[..after_decimal-1].parse::<u64>().unwrap() * 10u64.pow(11-after_decimal as u32);
-        let raw = (naive * 9) / if after_decimal == 2 {2500000} else {250000};
-        (raw - minimum) as u16
+    let after_decimal = if record[1..2] == *"." { 2 } else { 3 };
+    let mut naive = (record[after_decimal..].parse::<u64>().unwrap()
+        * 10u64.pow(10 - (record.len() as u32 - 1)))
+        + 1;
+    naive +=
+        record[..after_decimal - 1].parse::<u64>().unwrap() * 10u64.pow(11 - after_decimal as u32);
+    let raw = (naive * 9) / if after_decimal == 2 { 2500000 } else { 250000 };
+    (raw - minimum) as u16
 }
 
 pub fn get_minimum(coll: &mut Vec<String>) -> u64 {
     coll.sort();
     coll.dedup();
     println!("{}", coll.len());
-    let mut deviation: Vec<u64> = coll.iter().map(|x| {
-        let after_decimal = if x[1..2] == *"." { 2 } else { 3 };
-        let mut naive = (x[after_decimal..].parse::<u64>().unwrap() * 10u64.pow(10 - (x.len() as u32 - 1))) + 1;
-        naive += x[..after_decimal-1].parse::<u64>().unwrap() * 10u64.pow(11-after_decimal as u32);
-        (naive * 9) / if after_decimal == 2 {2500000} else {250000}
-    }).collect();
+    let mut deviation: Vec<u64> = coll
+        .iter()
+        .map(|x| {
+            let after_decimal = if x[1..2] == *"." { 2 } else { 3 };
+            let mut naive = (x[after_decimal..].parse::<u64>().unwrap()
+                * 10u64.pow(10 - (x.len() as u32 - 1)))
+                + 1;
+            naive += x[..after_decimal - 1].parse::<u64>().unwrap()
+                * 10u64.pow(11 - after_decimal as u32);
+            (naive * 9) / if after_decimal == 2 { 2500000 } else { 250000 }
+        })
+        .collect();
     deviation.sort();
     deviation.dedup();
     println!("{}", deviation.len());

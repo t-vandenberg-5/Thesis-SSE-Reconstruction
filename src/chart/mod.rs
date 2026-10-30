@@ -1,18 +1,30 @@
-use std::{ops::Range};
+use std::ops::Range;
 
 use crate::T;
 use plotters::{
-    chart::{ChartBuilder, ChartContext}, coord::{
-        Shift, cartesian::Cartesian2d, combinators::{IntoLogRange, LogCoord}, types::RangedCoordf32
-    }, drawing::{DrawingArea, DrawingAreaErrorKind, IntoDrawingArea}, element::{DashedPathElement, PathElement}, prelude::BitMapBackend, series::{DashedLineSeries, LineSeries}, style::{Color, IntoFont, RGBColor, ShapeStyle, full_palette::{BLACK, WHITE}}
+    chart::{ChartBuilder, ChartContext},
+    coord::{
+        Shift,
+        cartesian::Cartesian2d,
+        combinators::{IntoLogRange, LogCoord},
+        types::RangedCoordf32,
+    },
+    drawing::{DrawingArea, DrawingAreaErrorKind, IntoDrawingArea},
+    element::{DashedPathElement, PathElement},
+    prelude::BitMapBackend,
+    series::{DashedLineSeries, LineSeries},
+    style::{
+        Color, IntoFont, RGBColor, ShapeStyle,
+        full_palette::{BLACK, WHITE},
+    },
 };
 use plotters_bitmap::BitMapBackendError;
 
 type PlottersResult<T> = Result<T, DrawingAreaErrorKind<BitMapBackendError>>;
 type Chart<'a> = ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordf32, LogCoord<f32>>>;
 
-pub mod triple;
 pub mod quad;
+pub mod triple;
 
 fn to_chart<'a>(
     area: DrawingArea<BitMapBackend<'a>, Shift>,
@@ -20,7 +32,14 @@ fn to_chart<'a>(
     x_range: Range<f32>,
     y_range: Range<f32>,
 ) -> PlottersResult<Chart<'a>> {
-    to_chart_complex(area, caption, 20, "Uniform random non-unique queries".to_string(), x_range, y_range)
+    to_chart_complex(
+        area,
+        caption,
+        20,
+        "Uniform random non-unique queries".to_string(),
+        x_range,
+        y_range,
+    )
 }
 
 fn to_chart_complex<'a>(
@@ -51,7 +70,7 @@ fn to_chart_complex<'a>(
     Ok(chart)
 }
 
-fn draw_subchart<'a>(chart: &mut Chart<'a>) -> PlottersResult<()>{
+fn draw_subchart<'a>(chart: &mut Chart<'a>) -> PlottersResult<()> {
     chart
         .configure_series_labels()
         .position(plotters::chart::SeriesLabelPosition::UpperRight)
@@ -81,13 +100,13 @@ fn draw_line_single_chart<'a>(
 ) -> PlottersResult<()> {
     chart
         .draw_series(LineSeries::new(
-                (range.clone()).map(|x| {
-                    (
-                        x as f32,
-                        result[(x - range.clone().min().unwrap()) as usize] as f32,
-                    )
-                }),
-                &color,
+            (range.clone()).map(|x| {
+                (
+                    x as f32,
+                    result[(x - range.clone().min().unwrap()) as usize] as f32,
+                )
+            }),
+            &color,
         ))?
         .label(label)
         .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
@@ -114,16 +133,18 @@ fn draw_line_single_chart_complex<'a>(
     //     ))?;
     chart
         .draw_series(LineSeries::new(
-                (range.clone()).map(|x| {
-                    (
-                        x as f32,
-                        result[(x - range.clone().min().unwrap()) as usize] as f32,
-                    )
-                }),
-                Into::<ShapeStyle>::into(&color).stroke_width(width),
+            (range.clone()).map(|x| {
+                (
+                    x as f32,
+                    result[(x - range.clone().min().unwrap()) as usize] as f32,
+                )
+            }),
+            Into::<ShapeStyle>::into(&color).stroke_width(width),
         ))?
         .label(label)
-        .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20 as i32, y)], color.stroke_width(width)));
+        .legend(move |(x, y)| {
+            PathElement::new(vec![(x, y), (x + 20 as i32, y)], color.stroke_width(width))
+        });
     Ok(())
 }
 
@@ -147,17 +168,28 @@ fn draw_dashed_line_single_chart_complex<'a>(
     //     ))?;
     chart
         .draw_series(DashedLineSeries::new(
-                (range.clone()).map(|x| {
-                    (
-                        x as f32,
-                        result[(x - range.clone().min().unwrap()) as usize] as f32,
-                    )
-                }),
-                5,
-                10,
-                ShapeStyle { color: color.into(), filled: false, stroke_width: width },
+            (range.clone()).map(|x| {
+                (
+                    x as f32,
+                    result[(x - range.clone().min().unwrap()) as usize] as f32,
+                )
+            }),
+            5,
+            10,
+            ShapeStyle {
+                color: color.into(),
+                filled: false,
+                stroke_width: width,
+            },
         ))?
         .label(label)
-        .legend(move |(x, y)| DashedPathElement::new(vec![(x, y), (x + 20 as i32, y)], 5, 10, color.stroke_width(width)));
+        .legend(move |(x, y)| {
+            DashedPathElement::new(
+                vec![(x, y), (x + 20 as i32, y)],
+                5,
+                10,
+                color.stroke_width(width),
+            )
+        });
     Ok(())
 }

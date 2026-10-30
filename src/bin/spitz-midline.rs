@@ -1,41 +1,46 @@
 #![feature(portable_simd)]
 use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, U, dataset::{CSVConfigBuilder, get_minimum, parse}, midline::{self, Tracker}};
-use std::{simd::Simd, thread::{self, JoinHandle}};
 use nanorand::{Rng, WyRand};
+use reconstructor::{
+    Solver, T, U,
+    dataset::{CSVConfigBuilder, get_minimum, parse},
+    midline::{self, Tracker},
+};
+use std::{
+    simd::Simd,
+    thread::{self, JoinHandle},
+};
 
 #[macro_export]
 macro_rules! query {
-    ( $x:expr ) => {
-        {
-            let mut d0: [u16; 2];
-            let mut d1: [u16; 2];
-            loop {
-                let value: u64 = $x.generate();
-                d0 = [
-                    (value & 0x7FFF) as u16,
-                    ((value >> 16) & 0x7FFF) as u16,
-                ];
-                d1 = [
-                    ((value >> 32) & 0x7FFF) as u16,
-                    ((value >> 48) & 0x7FFF) as u16,
-                ];
-                //println!("{:?}, {:?}", d0, d1);
+    ( $x:expr ) => {{
+        let mut d0: [u16; 2];
+        let mut d1: [u16; 2];
+        loop {
+            let value: u64 = $x.generate();
+            d0 = [(value & 0x7FFF) as u16, ((value >> 16) & 0x7FFF) as u16];
+            d1 = [
+                ((value >> 32) & 0x7FFF) as u16,
+                ((value >> 48) & 0x7FFF) as u16,
+            ];
+            //println!("{:?}, {:?}", d0, d1);
 
-                // Branchless version of `if d0[0] == dom[0] {d0[0] = d0[1]}`
-                d0[0] = d0[(d0[0] == 25456) as usize];
-                d1[0] = d1[(d1[0] == 24052) as usize];
-                //println!("{:?}, {:?}", d0, d1);
+            // Branchless version of `if d0[0] == dom[0] {d0[0] = d0[1]}`
+            d0[0] = d0[(d0[0] == 25456) as usize];
+            d1[0] = d1[(d1[0] == 24052) as usize];
+            //println!("{:?}, {:?}", d0, d1);
 
-                if d0[0] <= 25455 && d0[1] <= 25455 && d1[0] <= 24051 && d1[1] <= 24051 {
-                    break
-                }
+            if d0[0] <= 25455 && d0[1] <= 25455 && d1[0] <= 24051 && d1[1] <= 24051 {
+                break;
             }
-            //println!("passed: {:?}, {:?}", d0, d1);
-
-            [(d0[0].min(d0[1]), d0[0].max(d0[1])), (d1[0].min(d1[1]), d1[0].max(d1[1]))]
         }
-    };
+        //println!("passed: {:?}, {:?}", d0, d1);
+
+        [
+            (d0[0].min(d0[1]), d0[0].max(d0[1])),
+            (d1[0].min(d1[1]), d1[0].max(d1[1])),
+        ]
+    }};
 }
 
 fn main() {
@@ -48,8 +53,7 @@ fn main() {
         .filter(column2, |x| x.len() > 2)
         .filter(column2, |x| x[1..2] == *"." || x[2..3] == *".")
         .filter(column3, |x| x.len() > 0)
-        .filter(column3, |x| x != "null")
-        ;
+        .filter(column3, |x| x != "null");
     let mut reader = builder.rb();
     let mut coll1 = Vec::new();
     let mut coll2 = Vec::new();
@@ -74,7 +78,6 @@ fn main() {
     }
     println!("{}", c1.len());
 
-
     const DIMENSIONS: usize = 2;
     const CAPACITY: usize = 256;
     const QRMW: usize = qrsw(CAPACITY);
@@ -82,25 +85,27 @@ fn main() {
     const THREADS: usize = 25;
     const TESTS_PER_THREAD: usize = 4;
     const DOMAINS: [T; DIMENSIONS] = [25456, 24052];
-    let handle: [JoinHandle<[usize; TESTS_PER_THREAD]>; THREADS] = core::array::from_fn(|_threadnum| {
-        let v1 = c1.clone();
-        let v2 = c2.clone();
-        thread::spawn(move || {
-            let zipped: [usize; TESTS_PER_THREAD] = core::array::from_fn(|_| {
-                let sqe = WyRand::new();
-                let mut max_queries = 0;
-                let mut bound_start = 0;
-                while bound_start + 256 <= v1.len() {
-                    let database = DB::<T, U, DIMENSIONS, CAPACITY>::read(&[
-                        v1[bound_start..bound_start + CAPACITY].to_vec(),
-                        v2[bound_start..bound_start + CAPACITY].to_vec(),
-                        //v3[bound_start..bound_start + CAPACITY].to_vec()
-                    ]);
-                    //println!("[{:?}] Thread {} read database {}..{}", chrono::Utc::now(), _threadnum, bound_start, bound_start + CAPACITY);
-                    let mut qe = sqe.clone();
-                    let mut solver: midline::Tracker<DIMENSIONS, QRMW> = midline::Tracker::new::<CAPACITY>(DOMAINS);
-                    let mut queries = 0;
-                    while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver) {
+    let handle: [JoinHandle<[usize; TESTS_PER_THREAD]>; THREADS] = core::array::from_fn(
+        |_threadnum| {
+            let v1 = c1.clone();
+            let v2 = c2.clone();
+            thread::spawn(move || {
+                let zipped: [usize; TESTS_PER_THREAD] = core::array::from_fn(|_| {
+                    let sqe = WyRand::new();
+                    let mut max_queries = 0;
+                    let mut bound_start = 0;
+                    while bound_start + 256 <= v1.len() {
+                        let database = DB::<T, U, DIMENSIONS, CAPACITY>::read(&[
+                            v1[bound_start..bound_start + CAPACITY].to_vec(),
+                            v2[bound_start..bound_start + CAPACITY].to_vec(),
+                            //v3[bound_start..bound_start + CAPACITY].to_vec()
+                        ]);
+                        //println!("[{:?}] Thread {} read database {}..{}", chrono::Utc::now(), _threadnum, bound_start, bound_start + CAPACITY);
+                        let mut qe = sqe.clone();
+                        let mut solver: midline::Tracker<DIMENSIONS, QRMW> =
+                            midline::Tracker::new::<CAPACITY>(DOMAINS);
+                        let mut queries = 0;
+                        while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::is_solved(&solver) {
                         queries += 1;
                         let query = query!(qe);
                         solver.add_query(&query, dummy_simd, &database);
@@ -118,44 +123,54 @@ fn main() {
                         }
                     }
 
-                    for i in 0..CAPACITY {
-                        assert_eq!(<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::get_solved(&solver, i as U), Some(database.cheat_pos_traverse(i as U)));
+                        for i in 0..CAPACITY {
+                            assert_eq!(<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, CAPACITY, QRMW>>::get_solved(&solver, i as U), Some(database.cheat_pos_traverse(i as U)));
+                        }
+
+                        if queries > max_queries {
+                            max_queries = queries;
+                        }
+                        bound_start += 256;
+                    }
+
+                    let database = DB::<T, U, DIMENSIONS, 68>::read(&[
+                        v1[bound_start..bound_start + 68].to_vec(),
+                        v2[bound_start..bound_start + 68].to_vec(),
+                        //v3[bound_start..bound_start + 68].to_vec()
+                    ]);
+                    //println!("Read Database");
+                    let mut qe = sqe.clone();
+                    let mut solver: midline::Tracker<DIMENSIONS, QRMW> =
+                        midline::Tracker::new::<68>(DOMAINS);
+                    let mut queries = 0;
+                    while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, 68, QRMW>>::is_solved(
+                        &solver,
+                    ) {
+                        queries += 1;
+                        let query = query!(qe);
+                        solver.add_query(&query, database.search(query), &database);
+                    }
+
+                    for i in 0..68 {
+                        assert_eq!(
+                            <Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, 68, QRMW>>::get_solved(
+                                &solver, i as U
+                            ),
+                            Some(database.cheat_pos_traverse(i as U))
+                        );
                     }
 
                     if queries > max_queries {
                         max_queries = queries;
                     }
-                    bound_start += 256;
-                }
 
-                let database = DB::<T, U, DIMENSIONS, 68>::read(&[
-                    v1[bound_start..bound_start + 68].to_vec(),
-                    v2[bound_start..bound_start + 68].to_vec(),
-                    //v3[bound_start..bound_start + 68].to_vec()
-                ]);
-                //println!("Read Database");
-                let mut qe = sqe.clone();
-                let mut solver: midline::Tracker<DIMENSIONS, QRMW> = midline::Tracker::new::<68>(DOMAINS);
-                let mut queries = 0;
-                while !<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, 68, QRMW>>::is_solved(&solver) {
-                    queries += 1;
-                    let query = query!(qe);
-                    solver.add_query(&query, database.search(query), &database);
-                }
-
-                for i in 0..68 {
-                    assert_eq!(<Tracker<DIMENSIONS, QRMW> as Solver<DIMENSIONS, 68, QRMW>>::get_solved(&solver, i as U), Some(database.cheat_pos_traverse(i as U)));
-                }
-
-                if queries > max_queries {
-                    max_queries = queries;
-                }
-
-                println!("max_queries: {max_queries}");
-                max_queries
-            });
-            zipped
-    })});
+                    println!("max_queries: {max_queries}");
+                    max_queries
+                });
+                zipped
+            })
+        },
+    );
     let mut r: Vec<usize> = Vec::with_capacity(TESTS_PER_THREAD * THREADS);
 
     for h in handle {

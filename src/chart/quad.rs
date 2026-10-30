@@ -23,30 +23,10 @@ impl<'a> QuadChart<'a> {
         let p50 = v.pop().unwrap();
         Ok(Self {
             root_area,
-            p99: to_chart(
-                p99,
-                "p99".to_string(),
-                range.clone(),
-                1e0f32..1e8f32,
-            )?,
-            p90: to_chart(
-                p90,
-                "p90".to_string(),
-                range.clone(),
-                1e0f32..1e8f32,
-            )?,
-            p50: to_chart(
-                p50,
-                "p50".to_string(),
-                range.clone(),
-                1e0f32..1e8f32,
-            )?,
-            p50_l: to_chart(
-                p50_l,
-                "p50_l".to_string(),
-                range,
-                1f32..1e13f32,
-            )?,
+            p99: to_chart(p99, "p99".to_string(), range.clone(), 1e0f32..1e8f32)?,
+            p90: to_chart(p90, "p90".to_string(), range.clone(), 1e0f32..1e8f32)?,
+            p50: to_chart(p50, "p50".to_string(), range.clone(), 1e0f32..1e8f32)?,
+            p50_l: to_chart(p50_l, "p50_l".to_string(), range, 1f32..1e13f32)?,
         })
     }
 
@@ -58,7 +38,6 @@ impl<'a> QuadChart<'a> {
 
         self.root_area.present()
     }
-
 
     pub fn draw_line<const AMOUNT: usize>(
         &mut self,

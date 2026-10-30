@@ -1,12 +1,14 @@
 use std::cmp::Ordering;
 
-// The general idea behind this approach is that instead of running queries and 
+// The general idea behind this approach is that instead of running queries and
 // analyzing the results, we should simply parse the database into another
 // datastructure that sets requirements. As these requirements are met, we can
 // remove them. Once none remain, the database is reconstructed.
 use crate::{T, midline_optimized::pebble::Pebble};
 
-pub const fn hyperoctants(m: usize) -> usize { 2usize.pow(m as u32) }
+pub const fn hyperoctants(m: usize) -> usize {
+    2usize.pow(m as u32)
+}
 
 /// Contains a set of constraints
 mod raw_pebble {
@@ -30,7 +32,10 @@ mod raw_pebble {
 
     impl<const N: usize> RawPebble<N> {
         pub fn with_capacity(capacity: usize) -> Self {
-            Self { pos: Vec::with_capacity(capacity), constraints: Vec::with_capacity(capacity) }
+            Self {
+                pos: Vec::with_capacity(capacity),
+                constraints: Vec::with_capacity(capacity),
+            }
         }
 
         pub fn insert<const M: usize>(&mut self, index: usize, value: &[T; M]) {
@@ -38,7 +43,8 @@ mod raw_pebble {
             debug_assert!(M > N);
             debug_assert_eq!(self.pos.len(), self.constraints.len());
             self.pos.insert(index, value[0]);
-            self.constraints.insert(index, core::array::from_fn(|x| value[x + 1]));
+            self.constraints
+                .insert(index, core::array::from_fn(|x| value[x + 1]));
         }
 
         pub fn replace<const M: usize>(&mut self, index: usize, value: &[T; M]) {
@@ -76,16 +82,16 @@ mod raw_pebble {
         }
 
         /// Check a record's dominance relation to an entry in Pebble.
-        /// 
-        /// It returns `Some(Greater)` if the record is dominant to the entry, 
+        ///
+        /// It returns `Some(Greater)` if the record is dominant to the entry,
         /// `Some(Equal)` if the record is equal to the entry, `Some(Less)` if the
         /// record is dominated by the entry, and None if there is no dominance
         /// between the record and entry.
         pub fn cmp<const M: usize>(
             &self,
-            index: usize, 
-            record: &[T; M], 
-            hyperoctant_index: usize, 
+            index: usize,
+            record: &[T; M],
+            hyperoctant_index: usize,
         ) -> Option<Ordering> {
             debug_assert_eq!(N + 1, M);
             debug_assert!(M > N);
@@ -97,40 +103,31 @@ mod raw_pebble {
             debug_assert_eq!(record[0], *pos);
 
             for d in 0..N {
-                let entry_cmp = 
-                    if (1 << d) & hyperoctant_index > 0 { 
-                        record[d + 1].cmp(&constraints[d])
-                    } else { 
-                        flip_order(record[d + 1].cmp(&constraints[d]))
-                    };
+                let entry_cmp = if (1 << d) & hyperoctant_index > 0 {
+                    record[d + 1].cmp(&constraints[d])
+                } else {
+                    flip_order(record[d + 1].cmp(&constraints[d]))
+                };
 
                 match (order, entry_cmp) {
-                    (Ordering::Less, Ordering::Less) |
-                    (Ordering::Equal, Ordering::Equal) |
-                    (Ordering::Greater, Ordering::Greater)
-                        => {},
-                    (_, Ordering::Equal)
-                        => {},
-                    (Ordering::Equal, a) 
-                        => { order = a },
-                    (Ordering::Less, Ordering::Greater) |
-                    (Ordering::Greater, Ordering::Less) 
-                        => { return None },
+                    (Ordering::Less, Ordering::Less)
+                    | (Ordering::Equal, Ordering::Equal)
+                    | (Ordering::Greater, Ordering::Greater) => {}
+                    (_, Ordering::Equal) => {}
+                    (Ordering::Equal, a) => order = a,
+                    (Ordering::Less, Ordering::Greater) | (Ordering::Greater, Ordering::Less) => {
+                        return None;
+                    }
                 }
             }
             // println!("Order: {:?}", order);
             Some(order)
         }
 
-        /// Assumes the query is valid for the current dimension, has no way to 
-        /// check. Furthermore, assumes that the correct query bound was used to 
+        /// Assumes the query is valid for the current dimension, has no way to
+        /// check. Furthermore, assumes that the correct query bound was used to
         /// find the index.
-        fn resolves(
-            &self,
-            index: usize,
-            query: &[(T, T)], 
-            hyperoctant_index: usize, 
-        ) -> bool {
+        fn resolves(&self, index: usize, query: &[(T, T)], hyperoctant_index: usize) -> bool {
             debug_assert_eq!(N, query.len());
 
             let (_pos, constraints) = self.get(index);
@@ -139,12 +136,12 @@ mod raw_pebble {
 
             for d in 0..N {
                 // println!("d: {}", d);
-                if (1 << d) & hyperoctant_index > 0 { 
+                if (1 << d) & hyperoctant_index > 0 {
                     // println!("if");
                     if query[d].1 < constraints[d] {
                         return false;
                     }
-                } else { 
+                } else {
                     // println!("else");
                     // println!("qd0: {}, c: {}", query[d].0, constraints[d]);
                     if query[d].0 > constraints[d] {
@@ -158,8 +155,8 @@ mod raw_pebble {
 
         pub fn process_query<const M: usize>(
             &mut self,
-            query: &[(T, T); M], 
-            hyperoctant_index: usize, 
+            query: &[(T, T); M],
+            hyperoctant_index: usize,
             is_upper: bool,
         ) {
             debug_assert_eq!(N + 1, M);
@@ -193,7 +190,6 @@ mod raw_pebble {
                     lower = lower.wrapping_sub(1);
                 }
             }
-
         }
     }
 }
@@ -226,7 +222,7 @@ mod pebble {
                             // println!("Called replace!");
                             self.0.replace(index, record);
                         }
-                        return 
+                        return;
                     }
 
                     let mut lower = index.wrapping_sub(1);
@@ -236,7 +232,7 @@ mod pebble {
                                 // println!("Called replace!");
                                 self.0.replace(lower, record);
                             }
-                            return 
+                            return;
                         }
 
                         lower = lower.wrapping_sub(1);
@@ -249,24 +245,24 @@ mod pebble {
                                 // println!("Called replace!");
                                 self.0.replace(higher, record);
                             }
-                            return 
+                            return;
                         }
 
                         higher += 1;
                     }
 
                     self.0.insert(index, record);
-                },
+                }
                 Err(index) => {
                     self.0.insert(index, record);
-                },
+                }
             }
         }
 
         pub fn process_query<const M: usize>(
-            &mut self, 
-            query: &[(T, T); M], 
-            hyperoctant_index: usize, 
+            &mut self,
+            query: &[(T, T); M],
+            hyperoctant_index: usize,
             is_upper: bool,
         ) {
             debug_assert_eq!(N + 1, M);
@@ -297,14 +293,22 @@ struct Guardian<const N: usize> {
 
 impl<const N: usize> Guardian<N> {
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { lower: Pebble::with_capacity(capacity), upper: Pebble::with_capacity(capacity) }
+        Self {
+            lower: Pebble::with_capacity(capacity),
+            upper: Pebble::with_capacity(capacity),
+        }
     }
 
     pub fn is_solved(&self) -> bool {
         self.lower.is_solved() && self.upper.is_solved()
     }
 
-    pub fn insert<const M: usize>(&mut self, record: &[T; M], hyperoctant_index: usize, guardian_pebble: GuardianPebble) {
+    pub fn insert<const M: usize>(
+        &mut self,
+        record: &[T; M],
+        hyperoctant_index: usize,
+        guardian_pebble: GuardianPebble,
+    ) {
         debug_assert_eq!(N + 1, M);
         debug_assert!(M > N);
 
@@ -312,19 +316,19 @@ impl<const N: usize> Guardian<N> {
             GuardianPebble::Lower => {
                 // println!("Inserting in lower hyperoctant {:?}", record);
                 self.lower.insert(record, hyperoctant_index);
-            },
+            }
             GuardianPebble::Upper => {
                 // println!("Inserting in upper hyperoctant {:?}", record);
                 self.upper.insert(record, hyperoctant_index);
-            },
+            }
         }
     }
 
     pub fn process_query<const M: usize>(
-        &mut self, 
-        query: &[(T, T); M], 
-        hyperoctant_index: usize, 
-        guardian_pebble: GuardianPebble
+        &mut self,
+        query: &[(T, T); M],
+        hyperoctant_index: usize,
+        guardian_pebble: GuardianPebble,
     ) {
         debug_assert_eq!(N + 1, M);
         debug_assert!(M > N);
@@ -332,10 +336,10 @@ impl<const N: usize> Guardian<N> {
         match guardian_pebble {
             GuardianPebble::Lower => {
                 self.lower.process_query(query, hyperoctant_index, false);
-            },
+            }
             GuardianPebble::Upper => {
                 self.upper.process_query(query, hyperoctant_index, true);
-            },
+            }
         }
     }
 
@@ -354,10 +358,15 @@ struct Basalt<const N: usize, const H: usize> {
 
 impl<const N: usize, const H: usize> Basalt<N, H> {
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { hyperoctant: core::array::from_fn(|_| Guardian::with_capacity(capacity)) }
+        Self {
+            hyperoctant: core::array::from_fn(|_| Guardian::with_capacity(capacity)),
+        }
     }
 
-    fn find_record_hyperoctant<const M: usize>(record: &[T; M], midpoint: &[T; M]) -> (usize, usize) {
+    fn find_record_hyperoctant<const M: usize>(
+        record: &[T; M],
+        midpoint: &[T; M],
+    ) -> (usize, usize) {
         debug_assert_eq!(N + 1, M);
         debug_assert!(M > N);
         debug_assert_eq!(H, hyperoctants(N));
@@ -369,16 +378,16 @@ impl<const N: usize, const H: usize> Basalt<N, H> {
             match record[d + 1].cmp(&midpoint[d + 1]) {
                 Ordering::Less => {
                     // println!("Less");
-                },
+                }
                 Ordering::Equal => {
                     // println!("Equal");
                     upper_hyperoctant |= 1 << d;
-                },
+                }
                 Ordering::Greater => {
                     // println!("Greater");
                     lower_hyperoctant |= 1 << d;
                     upper_hyperoctant |= 1 << d;
-                },
+                }
             }
         }
 
@@ -386,7 +395,10 @@ impl<const N: usize, const H: usize> Basalt<N, H> {
         (lower_hyperoctant, upper_hyperoctant)
     }
 
-    fn find_query_hyperoctant<const M: usize>(query: &[(T, T); M], midpoint: &[T; M]) -> (usize, usize) {
+    fn find_query_hyperoctant<const M: usize>(
+        query: &[(T, T); M],
+        midpoint: &[T; M],
+    ) -> (usize, usize) {
         debug_assert_eq!(N + 1, M);
         debug_assert!(M > N);
         debug_assert_eq!(H, hyperoctants(N));
@@ -396,16 +408,16 @@ impl<const N: usize, const H: usize> Basalt<N, H> {
 
         for d in 0..N {
             match query[d + 1].0.cmp(&midpoint[d + 1]) {
-                Ordering::Less | Ordering::Equal => {},
+                Ordering::Less | Ordering::Equal => {}
                 Ordering::Greater => {
                     lower_hyperoctant |= 1 << d;
-                },
+                }
             }
             match query[d + 1].1.cmp(&midpoint[d + 1]) {
-                Ordering::Less => {},
+                Ordering::Less => {}
                 Ordering::Equal | Ordering::Greater => {
                     upper_hyperoctant |= 1 << d;
-                },
+                }
             }
         }
 
@@ -434,7 +446,7 @@ impl<const N: usize, const H: usize> Basalt<N, H> {
     pub fn is_solved(&self) -> bool {
         for h in 0..H {
             if !self.hyperoctant[h].is_solved() {
-                return false
+                return false;
             }
         }
         true
@@ -452,13 +464,15 @@ pub struct Slate<const N: usize, const M: usize, const H: usize> {
 
 impl<const N: usize, const M: usize, const H: usize> Slate<N, M, H> {
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { dimensions: core::array::from_fn(|_| Basalt::with_capacity(capacity)) }
+        Self {
+            dimensions: core::array::from_fn(|_| Basalt::with_capacity(capacity)),
+        }
     }
 
     pub fn is_solved(&self) -> bool {
         for d in 0..M {
             if !self.dimensions[d].is_solved() {
-                return false
+                return false;
             }
         }
         true

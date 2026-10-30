@@ -60,7 +60,6 @@ struct Args {
     #[arg(short, long, default_value_t = 100)]
     attempts: u16,
 
-
     /// Strategy used to determine insertions
     #[arg(short, long, default_value_t = InsertionStrategy::None)]
     insertion: InsertionStrategy,

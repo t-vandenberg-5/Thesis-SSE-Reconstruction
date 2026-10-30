@@ -7,10 +7,17 @@ fn main() {
         .filter(column1, |x| x.len() > 2)
         .filter(column1, |x| x[1..2] == *"." || x[2..3] == *".")
         .filter(column2, |x| x.len() > 2)
-        .filter(column2, |x| x[1..2] == *"." || x[2..3] == *".")
-        ;
+        .filter(column2, |x| x[1..2] == *"." || x[2..3] == *".");
     let mut reader = builder.rb();
-    let coll: Vec<(String, String)> = builder.read_iter(&mut reader).map(|x| (x.get(column1).unwrap().to_string(), x.get(column2).unwrap().to_string())).collect();
+    let coll: Vec<(String, String)> = builder
+        .read_iter(&mut reader)
+        .map(|x| {
+            (
+                x.get(column1).unwrap().to_string(),
+                x.get(column2).unwrap().to_string(),
+            )
+        })
+        .collect();
     let (mut coll1, mut coll2) = coll.into_iter().unzip();
     println!("max dev c1: {:?}", get_minimum(&mut coll1));
     println!("max dev c2: {:?}", get_minimum(&mut coll2));

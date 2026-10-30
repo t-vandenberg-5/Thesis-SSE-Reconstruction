@@ -1,9 +1,12 @@
 use bumpalo::Bump;
 use database_engine::{DB, qrsw};
-use reconstructor::{Solver, T, U, Tracker2D};
 use emptyblock::simd::simd_block_width;
 use nanorand::WyRand;
-use query_engine::{buffer::{Buffer, BufferTrait}, generator::RandomGenerator};
+use query_engine::{
+    buffer::{Buffer, BufferTrait},
+    generator::RandomGenerator,
+};
+use reconstructor::{Solver, T, Tracker2D, U};
 
 fn main() {
     const DIMENSIONS: usize = 2;
@@ -15,7 +18,12 @@ fn main() {
     let database = DB::<T, U, DIMENSIONS, CAPACITY>::generate(&DOMAINS);
     let bump = Bump::new();
     let mut qe = Buffer::<T, DIMENSIONS, RandomGenerator<WyRand, 8>>::new(&bump);
-    let mut solver: Tracker2D<{ DOMAINS[0] as usize }, QRMW, { simd_block_width(DOMAINS[1] as usize).0 }, { simd_block_width(DOMAINS[1] as usize).1 } > = Tracker2D::new::<CAPACITY>(DOMAINS);
+    let mut solver: Tracker2D<
+        { DOMAINS[0] as usize },
+        QRMW,
+        { simd_block_width(DOMAINS[1] as usize).0 },
+        { simd_block_width(DOMAINS[1] as usize).1 },
+    > = Tracker2D::new::<CAPACITY>(DOMAINS);
     while !<Tracker2D<{ DOMAINS[0] as usize }, QRMW, SBW, SLL> as Solver<2, CAPACITY, QRMW>>::is_solved(&solver) {
         let query = qe.next(&DOMAINS);
         if solver.add_query(&query, database.search(query), &database) {

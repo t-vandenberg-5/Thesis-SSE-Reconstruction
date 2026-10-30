@@ -8,17 +8,29 @@ pub mod generator {
     }
 
     #[derive(Clone)]
-    pub struct RandomGenerator<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH>, const RNG_SOURCE_WIDTH: usize> {
+    pub struct RandomGenerator<
+        RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH>,
+        const RNG_SOURCE_WIDTH: usize,
+    > {
         rand: BufferedRng<RNGSource, RNG_SOURCE_WIDTH>,
     }
 
-    impl<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize> Default for RandomGenerator<RNGSource, RNG_SOURCE_WIDTH> {
+    impl<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize>
+        Default for RandomGenerator<RNGSource, RNG_SOURCE_WIDTH>
+    {
         fn default() -> Self {
-            Self { rand: BufferedRng::new(RNGSource::default()) }
+            Self {
+                rand: BufferedRng::new(RNGSource::default()),
+            }
         }
     }
 
-    impl<T: From<u8> + PartialOrd + Copy, const DIMENSIONS: usize, RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize> GeneratorTrait<T, DIMENSIONS> for RandomGenerator<RNGSource, RNG_SOURCE_WIDTH> 
+    impl<
+        T: From<u8> + PartialOrd + Copy,
+        const DIMENSIONS: usize,
+        RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default,
+        const RNG_SOURCE_WIDTH: usize,
+    > GeneratorTrait<T, DIMENSIONS> for RandomGenerator<RNGSource, RNG_SOURCE_WIDTH>
     where
         T: RandomRange<BufferedRng<RNGSource, RNG_SOURCE_WIDTH>, RNG_SOURCE_WIDTH>,
     {
@@ -28,27 +40,35 @@ pub mod generator {
             core::array::from_fn(|d| {
                 let a = self.rand.generate_range(T::from(0)..domain[d]);
                 let b = self.rand.generate_range(T::from(0)..domain[d]);
-                if a <= b {
-                    (a, b)
-                } else {
-                    (b, a)
-                }
+                if a <= b { (a, b) } else { (b, a) }
             })
         }
     }
 
     #[derive(Clone)]
-    pub struct UniformRandomGenerator<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH>, const RNG_SOURCE_WIDTH: usize> {
+    pub struct UniformRandomGenerator<
+        RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH>,
+        const RNG_SOURCE_WIDTH: usize,
+    > {
         rand: BufferedRng<RNGSource, RNG_SOURCE_WIDTH>,
     }
 
-    impl<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize> Default for UniformRandomGenerator<RNGSource, RNG_SOURCE_WIDTH> {
+    impl<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize>
+        Default for UniformRandomGenerator<RNGSource, RNG_SOURCE_WIDTH>
+    {
         fn default() -> Self {
-            Self { rand: BufferedRng::new(RNGSource::default()) }
+            Self {
+                rand: BufferedRng::new(RNGSource::default()),
+            }
         }
     }
 
-    impl<T: From<u8> + PartialOrd + Copy, const DIMENSIONS: usize, RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize> GeneratorTrait<T, DIMENSIONS> for UniformRandomGenerator<RNGSource, RNG_SOURCE_WIDTH> 
+    impl<
+        T: From<u8> + PartialOrd + Copy,
+        const DIMENSIONS: usize,
+        RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default,
+        const RNG_SOURCE_WIDTH: usize,
+    > GeneratorTrait<T, DIMENSIONS> for UniformRandomGenerator<RNGSource, RNG_SOURCE_WIDTH>
     where
         T: RandomRange<BufferedRng<RNGSource, RNG_SOURCE_WIDTH>, RNG_SOURCE_WIDTH>,
     {
@@ -70,17 +90,33 @@ pub mod generator {
     }
 
     #[derive(Clone)]
-    pub struct BetterRandomGenerator<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH>, const RNG_SOURCE_WIDTH: usize> {
+    pub struct BetterRandomGenerator<
+        RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH>,
+        const RNG_SOURCE_WIDTH: usize,
+    > {
         rand: BufferedRng<RNGSource, RNG_SOURCE_WIDTH>,
     }
 
-    impl<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize> Default for BetterRandomGenerator<RNGSource, RNG_SOURCE_WIDTH> {
+    impl<RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize>
+        Default for BetterRandomGenerator<RNGSource, RNG_SOURCE_WIDTH>
+    {
         fn default() -> Self {
-            Self { rand: BufferedRng::new(RNGSource::default()) }
+            Self {
+                rand: BufferedRng::new(RNGSource::default()),
+            }
         }
     }
 
-    impl<T: From<u8> + RandomRange<BufferedRng<RNGSource, RNG_SOURCE_WIDTH>, RNG_SOURCE_WIDTH> + PartialOrd + Copy, const DIMENSIONS: usize, RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default, const RNG_SOURCE_WIDTH: usize> GeneratorTrait<T, DIMENSIONS> for BetterRandomGenerator<RNGSource, RNG_SOURCE_WIDTH> {
+    impl<
+        T: From<u8>
+            + RandomRange<BufferedRng<RNGSource, RNG_SOURCE_WIDTH>, RNG_SOURCE_WIDTH>
+            + PartialOrd
+            + Copy,
+        const DIMENSIONS: usize,
+        RNGSource: nanorand::Rng<RNG_SOURCE_WIDTH> + Default,
+        const RNG_SOURCE_WIDTH: usize,
+    > GeneratorTrait<T, DIMENSIONS> for BetterRandomGenerator<RNGSource, RNG_SOURCE_WIDTH>
+    {
         type Generated = [(T, T); DIMENSIONS];
 
         fn generate(&mut self, domain: &[T; DIMENSIONS]) -> Self::Generated {
@@ -111,7 +147,9 @@ pub mod buffer {
         vec: Vec<'a, Generator::Generated>,
     }
 
-    impl<'a, T, const DIMENSIONS: usize, Generator: GeneratorTrait<T, DIMENSIONS>> Buffer<'a, T, DIMENSIONS, Generator> {
+    impl<'a, T, const DIMENSIONS: usize, Generator: GeneratorTrait<T, DIMENSIONS>>
+        Buffer<'a, T, DIMENSIONS, Generator>
+    {
         pub fn new(bump: &'a Bump) -> Self {
             Self {
                 generator: Generator::default(),
@@ -121,7 +159,9 @@ pub mod buffer {
         }
     }
 
-    impl<'a, T, const DIMENSIONS: usize, Generator: GeneratorTrait<T, DIMENSIONS>> BufferTrait<T, DIMENSIONS> for Buffer<'a, T, DIMENSIONS, Generator> {
+    impl<'a, T, const DIMENSIONS: usize, Generator: GeneratorTrait<T, DIMENSIONS>>
+        BufferTrait<T, DIMENSIONS> for Buffer<'a, T, DIMENSIONS, Generator>
+    {
         type Generated = Generator::Generated;
         fn existing_next(&mut self) -> Option<Generator::Generated> {
             if self.index == self.vec.len() {
