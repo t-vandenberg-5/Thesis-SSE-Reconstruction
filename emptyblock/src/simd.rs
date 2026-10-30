@@ -245,7 +245,7 @@ where
                 for y in area[1].0..=area[1].1 {
                     zeroes += (self.mask[usize::from(x)][usize::from(y)][start_pos] | !start_block).count_zeros().to_array().iter().sum::<usize>();
                     for z in start_pos+1..end_pos {
-                        zeroes += self.mask[usize::from(x)][usize::from(y)][start_pos].count_zeros().to_array().iter().sum::<usize>();
+                        zeroes += self.mask[usize::from(x)][usize::from(y)][z].count_zeros().to_array().iter().sum::<usize>();
                     }
                     zeroes += (self.mask[usize::from(x)][usize::from(y)][end_pos] | !end_block).count_zeros().to_array().iter().sum::<usize>();
                     //println!("{x}, {y}: {zeroes}");
