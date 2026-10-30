@@ -1,0 +1,13 @@
+[package]
+name = "query_engine"
+version = "0.5.2"
+edition = "2024"
+
+[dependencies]
+bumpalo = { version = "3.20.2", features = ["collections"] }
+criterion = "0.8.2"
+nanorand = "0.8.0"
+
+[[bench]]
+name = "fresh"
+harness = false
