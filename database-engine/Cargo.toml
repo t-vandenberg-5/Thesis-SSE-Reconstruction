@@ -1,0 +1,13 @@
+[package]
+name = "database_engine"
+version = "0.5.2"
+edition = "2024"
+
+[dependencies]
+nanorand = "0.8.0"
+query_engine = { path = "../query-engine" }
+criterion = "0.8.2"
+
+[[bench]]
+name = "simd_search"
+harness = false

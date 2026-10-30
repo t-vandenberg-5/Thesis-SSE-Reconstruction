@@ -1,0 +1,25 @@
+[package]
+name = "emptyblock"
+version = "0.5.2"
+edition = "2024"
+
+[dependencies]
+bitvec = "1.0.1"
+criterion = "0.8.2"
+nanorand = "0.8.0"
+bumpalo = { version = "3.20.2", features = ["collections"] }
+btree-range-map = "0.7.2"
+rust-lapper = "1.2.0"
+meminterval = "0.4.2"
+
+[[bench]]
+name = "range_tree_crate"
+harness = false
+
+# [[bench]]
+# name = "naive"
+# harness = false
+
+[[bench]]
+name = "simd"
+harness = false
